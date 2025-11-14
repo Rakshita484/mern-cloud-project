@@ -1,48 +1,75 @@
 // backend/index.js
-const path = require('path');
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
-require("dotenv").config();
+const cookieParser = require("cookie-parser");
+const morgan = require("morgan"); // optional but useful
+require("dotenv").config(); // safe: this will only read local .env if present (we DO NOT commit .env)
 
+const authRoutes = require("./routes/auth");
+const hotelsRoutes = require("./routes/hotels");
+const bookingsRoutes = require("./routes/bookings");
+
+// Create express app
 const app = express();
-app.use(cors({ origin: "http://localhost:5173", credentials: true }));
-app.use(express.json());
 
-// debug: log incoming requests
-app.use((req, res, next) => {
-  console.log('[REQ]', req.method, req.originalUrl);
-  next();
-});
+// --- Middlewares ---
+app.use(express.json());            // parse JSON bodies
+app.use(express.urlencoded({ extended: true })); // parse URL-encoded bodies
+app.use(cookieParser());            // parse cookies
+app.use(morgan("dev"));            // HTTP logging (dev); remove if not wanted
 
-// health
-app.get("/api/ping", (req, res) => res.json({ ok: true, time: new Date() }));
-app.get("/api/hotels-debug", (req, res) => res.json({ ok: true, serverTime: new Date() }));
+// CORS configuration
+// If FRONTEND_URL is set in environment it will be used.
+// For quick testing you can set FRONTEND_URL="true" to allow all origins (NOT recommended for prod).
+const FRONTEND_URL = process.env.FRONTEND_URL;
+const corsOptions = {
+  origin: FRONTEND_URL ? FRONTEND_URL === "true" ? true : FRONTEND_URL : true,
+  credentials: true,
+};
+app.use(cors(corsOptions));
 
-// Connect to MongoDB
-const mongoUri = process.env.MONGO_URI || "mongodb://127.0.0.1:27017/mern_local";
-mongoose.connect(mongoUri)
-  .then(() => console.log("MongoDB connected"))
-  .catch(err => console.error("MongoDB connection error:", err));
-
-// register routes and log if loaded
-try {
-  const authRouter = require('./routes/auth'); console.log('Loaded routes/auth');
-  app.use('/api/auth', authRouter);
-
-  const hotelsRouter = require('./routes/hotels'); console.log('Loaded routes/hotels');
-  app.use('/api/hotels', hotelsRouter);
-
-  const bookingsRouter = require('./routes/bookings'); console.log('Loaded routes/bookings');
-  app.use('/api/bookings', bookingsRouter);
-} catch (err) {
-  console.warn("One or more route files not found or failed to load.");
-  console.warn(err && err.stack || err);
+// --- Connect to MongoDB ---
+const MONGO_URI = process.env.MONGO_URI;
+if (!MONGO_URI) {
+  console.error("ERROR: MONGO_URI is not set in environment variables.");
+  process.exit(1);
 }
 
+mongoose
+  .connect(MONGO_URI, {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+  })
+  .then(() => {
+    console.log("MongoDB connected successfully.");
+  })
+  .catch((err) => {
+    console.error("MongoDB connection error:", err);
+    // do not exit here automatically; Render will show logs — you may want to process.exit(1) in some cases
+  });
 
-// generic 404 for API
-app.use('/api', (req, res) => res.status(404).json({ msg: 'API endpoint not found' }));
+// --- Routes ---
+// Mount your existing route files. Make sure these modules export express routers.
+app.use("/api/auth", authRoutes);
+app.use("/api/hotels", hotelsRoutes);
+app.use("/api/bookings", bookingsRoutes);
 
+// optional: a quick healthcheck route
+app.get("/api/ping", (req, res) => {
+  res.json({ status: "ok", time: new Date().toISOString() });
+});
+
+// Error handling middleware (simple)
+app.use((err, req, res, next) => {
+  console.error("Unhandled error:", err);
+  const status = err.status || 500;
+  const message = err.message || "Internal Server Error";
+  res.status(status).json({ error: message });
+});
+
+// Start server
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+app.listen(PORT, () => {
+  console.log(`Backend server listening on port ${PORT}`);
+});
