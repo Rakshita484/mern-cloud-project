@@ -1,0 +1,40 @@
+:root{
+  --primary: #3b82f6; /* blue */
+  --accent: #10b981;  /* green */
+  --muted: #6b7280;
+  --card: #ffffff;
+  --bg: #f3f4f6;
+}
+
+*{box-sizing:border-box}
+body{margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,"Helvetica Neue",Arial;background:var(--bg);color:#111}
+
+.container{max-width:1100px;margin:24px auto;padding:0 16px}
+
+/* nav */
+.nav{background:linear-gradient(90deg,var(--primary),var(--accent));color:white;padding:12px 0;box-shadow:0 2px 8px rgba(0,0,0,0.08)}
+.nav .inner{display:flex;align-items:center;justify-content:space-between;max-width:1100px;margin:0 auto;padding:0 16px}
+.logo{font-weight:700;font-size:1.1rem}
+.nav a{color:white;text-decoration:none;margin-left:12px;padding:8px 10px;border-radius:6px}
+.nav .cta{background:white;color:var(--primary);font-weight:600}
+
+/* card */
+.card{background:var(--card);padding:14px;border-radius:10px;box-shadow:0 6px 18px rgba(15,23,42,0.06)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px}
+
+/* forms */
+.form{max-width:520px;margin:24px auto;background:white;padding:18px;border-radius:10px;box-shadow:0 6px 18px rgba(15,23,42,0.06)}
+.input,textarea,select{width:100%;padding:10px;border:1px solid #e5e7eb;border-radius:8px;margin-bottom:10px}
+.btn{display:inline-block;padding:10px 14px;border-radius:8px;background:var(--primary);color:white;border:none;cursor:pointer}
+.btn-ghost{background:transparent;border:1px solid #e5e7eb;color:var(--muted)}
+.small{font-size:0.9rem;color:var(--muted)}
+
+/* hotel item */
+.hotel-title{font-weight:700;margin-bottom:6px}
+.hotel-meta{color:var(--muted);font-size:0.9rem;margin-bottom:8px}
+.hotel-row{display:flex;justify-content:space-between;align-items:center;margin-top:12px}
+
+/* responsive */
+@media (max-width:600px){
+  .nav .inner{flex-direction:column;gap:8px}
+}
