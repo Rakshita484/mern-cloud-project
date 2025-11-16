@@ -22,12 +22,47 @@ app.use(morgan("dev"));            // HTTP logging (dev); remove if not wanted
 // CORS configuration
 // If FRONTEND_URL is set in environment it will be used.
 // For quick testing you can set FRONTEND_URL="true" to allow all origins (NOT recommended for prod).
-const FRONTEND_URL = process.env.FRONTEND_URL;
-const corsOptions = {
-  origin: FRONTEND_URL ? FRONTEND_URL === "true" ? true : FRONTEND_URL : true,
-  credentials: true,
+// Robust CORS configuration
+// Supports:
+//  - FRONTEND_URL = "true"  -> allow any origin (testing)
+//  - FRONTEND_URL = "https://your-vercel-app.vercel.app" -> allow that origin
+//  - FRONTEND_URL = "https://a.vercel.app,https://b.example.com" -> allow either
+const rawFrontend = process.env.FRONTEND_URL || "";
+const frontendTrimmed = rawFrontend.trim();
+
+let corsOptions = {
+  origin: true,
+  credentials: true
 };
-app.use(cors(corsOptions));
+
+if (frontendTrimmed && frontendTrimmed.toLowerCase() !== "true") {
+  const allowed = frontendTrimmed.split(",").map(s => s.trim()).filter(Boolean);
+
+  if (allowed.length === 1) {
+    // single origin
+    corsOptions.origin = allowed[0];
+  } else if (allowed.length > 1) {
+    // multiple allowed origins
+    corsOptions.origin = function (origin, callback) {
+      // allow non-browser requests (curl, server-to-server)
+      if (!origin) return callback(null, true);
+      if (allowed.indexOf(origin) !== -1) {
+        return callback(null, true);
+      } else {
+        return callback(new Error("CORS policy: origin not allowed"), false);
+      }
+    };
+  } else {
+    // fallback to allow all
+    corsOptions.origin = true;
+  }
+} else if (frontendTrimmed.toLowerCase() === "true") {
+  corsOptions.origin = true; // allow all origins (testing)
+} else {
+  corsOptions.origin = true; // default allow all
+}
+
+app.use(require("cors")(corsOptions));
 
 // --- Connect to MongoDB ---
 const MONGO_URI = process.env.MONGO_URI;
@@ -73,3 +108,4 @@ const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`Backend server listening on port ${PORT}`);
 });
+   
