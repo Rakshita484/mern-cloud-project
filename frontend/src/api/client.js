@@ -1,13 +1,32 @@
-import axios from "axios";
+const API = import.meta.env.VITE_API_BASE_URL;
 
-const API = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || "http://127.0.0.1:5000/api"
-});
+async function post(url, data) {
+  try {
+    const res = await fetch(`${API}${url}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+      credentials: "include"
+    });
 
-API.interceptors.request.use((config) => {
-  const token = localStorage.getItem("token");
-  if (token) config.headers.Authorization = `Bearer ${token}`;
-  return config;
-});
+    const json = await res.json();
 
-export default API;
+    if (!res.ok) {
+      alert(json.msg || json.error || "Something went wrong");
+      return null;
+    }
+
+    return json;
+  } catch (err) {
+    alert("Network error");
+    console.error(err);
+  }
+}
+
+export async function registerUser(name, email, password) {
+  return post("/api/auth/register", { name, email, password });
+}
+
+export async function loginUser(email, password) {
+  return post("/api/auth/login", { email, password });
+}
